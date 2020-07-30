@@ -16,3 +16,7 @@ arguments: eventid.
 example: /deleteEvent 4
 
 showEvents: this shows the events that must still happen.
+
+addEventFromNow: this adds an event the hours given from now.
+arguments: time(hh:mm), announceminsbefore, the name of the event.
+example: /addEventFromNow 30:20 15 world boss

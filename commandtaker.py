@@ -41,6 +41,21 @@ async def Time(ctx):
     """
     await ctx.send(str(datetime.datetime.now(datetime.timezone.utc))[:16])
 @client.command()
+async def addEventFromNow(ctx, time, announceminsbefore, *thename):
+    """
+    adds event from now +the given time.
+    parameters time, minutes before announcement, the name.
+    """
+    name=""
+    for i in thename:
+        name += str(i) + " "
+    toMinutes = int(time.split(":")[0])*60 + int(time.split(":")[1])
+    print(toMinutes)
+    timeEvent = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=toMinutes)
+    timeEvent=datetime.datetime(year=timeEvent.year, month=timeEvent.month, day=timeEvent.day, hour=timeEvent.hour, minute=timeEvent.minute, second=timeEvent.second, tzinfo=datetime.timezone.utc)
+    databasefunctions.DatabaseFunctions("events.db").addEvent(name, ctx.channel.id, timeEvent, int(announceminsbefore))
+    await ctx.send("event added and will be announced on " + str(timeEvent - datetime.timedelta(minutes=int(announceminsbefore))))
+@client.command()
 async def addEvent(ctx, date, time, announceminsbefore=30, *thename):
     """
     adds event.
