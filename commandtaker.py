@@ -1,4 +1,3 @@
-
 import discord
 from discord.ext.commands import Bot
 import asyncio
@@ -9,7 +8,11 @@ import re
 import time
 import os
 import databasefunctions
+# I don't want everyone to know the token so it will be read from a text file that wont be pushed to the git repo.
 def readToken():
+    """
+    reads the content of token.txt and returns that content.
+    """
     tokenfile = open('token.txt')
     token=tokenfile.read()
     return token
@@ -21,12 +24,23 @@ async def on_ready():
 
 @client.command()
 async def help(ctx):
+    """
+    sends a help message.
+    @todo: read help message from a text file. this aint very clear at the moment.
+    """
     await ctx.send("addEvent: this adds a event and announces it once at said datetime. \naddEvent: arguments: date(month-day), time(hh:mm), minutes before announcement(default = 30), name\nexample:/addEvent 10-20 8:42 30 world boss\n\naddRepeatingEvent: this adds a event and repeats it on said day. type none instead of weekday to repeat it every day. addRepeatingEvent: arguments:time, minutes before announcement, weekday(example:friday), name of the event\nexample: /addRepeatingEvent 12:00 30 friday set level 100 tournament\n\naddchannel: this adds the channel where this command has been typed to channels. after this events can be added and announced.\naddchannel: argument: the role to ping.(example:@somerole)\n example: /addchannel @somerole")
 @client.command()
 async def Time(ctx):
+    """
+    sends current utc time to the user.
+    """
     await ctx.send(str(datetime.datetime.now(datetime.timezone.utc))[:16])
 @client.command()
 async def addEvent(ctx, date, time, announceminsbefore=30, *thename):
+    """
+    adds event.
+    parameters date, time, minutes before announcement, the name.
+    """
     name=""
     for i in thename:
         name += str(i) + " "
@@ -49,6 +63,10 @@ async def addEvent(ctx, date, time, announceminsbefore=30, *thename):
 @client.command()
 #self, name, channel, time, minsbeforeAnnouncement, weekday
 async def addRepeatingEvent(ctx, thetime, minsbeforeAnnouncement, weekday=None, *thename):
+    """
+    adds a repeating event.
+    parameters:time, minutes before announcement, weekday as string, the name.
+    """
     name = ""
     if weekday == "none":
         weekday = None
@@ -74,6 +92,10 @@ async def addRepeatingEvent(ctx, thetime, minsbeforeAnnouncement, weekday=None, 
             await ctx.send("repeating event added and will be announced on " + str(somet.hour) + ":" + str(somet.minute) +" every " + str(weekday))
 @client.command()
 async def addChannel(ctx, role):
+    """
+    adds a channel.
+    parameter: role.
+    """
     try:
         role = role.replace("\n", "")
         databasefunctions.DatabaseFunctions("events.db").addChannel(ctx.channel.id, role)
@@ -82,13 +104,23 @@ async def addChannel(ctx, role):
         await ctx.send("failed to add channel. possible cause: channel is already added.")
 @client.command()
 async def showEvents(ctx):
+    """
+    shows all events happening on the channel where this command is used.
+    """
     await ctx.send(str(databasefunctions.DatabaseFunctions("events.db").showEvents(ctx.channel.id)))
 
 @client.command()
 async def showAllEvents(ctx):
-	await ctx.send(str(databasefunctions.DatabaseFunctions("events.db").showAllEvents(ctx.message.author.id)))
+    """
+    shows all events for debugging purposes to kevin123456#2069 only.
+    """
+    await ctx.send(str(databasefunctions.DatabaseFunctions("events.db").showAllEvents(ctx.message.author.id)))
+
 @client.command()
 async def deleteEvent(ctx, eventid):
+    """
+    deletes an event. parameter event id.
+    """
     try:
         eventid = int(eventid)
     except:

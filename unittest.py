@@ -13,6 +13,9 @@ def nameGenerator():
         name+=random.choice(alphabet)
     return name
 def dateGenerator():
+    """
+    returns a datetime.datetime object.
+    """
     year = 2020
     month=7
     day=28
@@ -20,4 +23,4 @@ def dateGenerator():
     minutes = random.randint(0, 59)
     realtime = datetime.datetime(year=year, month=month, day=day, hour=hour, minute=minutes, second=00, tzinfo=datetime.timezone.utc)
     return realtime
-test1()
+help(dateGenerator)
