@@ -1,0 +1,18 @@
+addEvent: this adds a event and announces it once at said datetime.
+addEvent: arguments: date(month-day), time(hh:mm), minutes before announcement(default = 30), name
+example:/addEvent 10-20 8:42 30 world boss
+
+addRepeatingEvent: this adds a event and repeats it on said day. type none instead of weekday to repeat it every day. addRepeatingEvent: arguments:time, minutes before announcement, weekday(example:friday), name of the event
+example: /addRepeatingEvent 12:00 30 friday set level 100 tournament
+
+addChannel: this adds the channel where this command has been typed to channels. after this events can be added and announced.
+addChannel: argument: the role to ping.(example:@somerole)
+example: /addchannel @somerole
+
+Time: this gives the current gametime.
+
+deleteEvent: this deletes an event. see /showEvents to show the event id's.
+arguments: eventid.
+example: /deleteEvent 4
+
+showEvents: this shows the events that must still happen.

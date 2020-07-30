@@ -16,6 +16,9 @@ def readToken():
     tokenfile = open('token.txt')
     token=tokenfile.read()
     return token
+def getHelp():
+    file = open("help.txt")
+    return file.read()
 client = commands.Bot(command_prefix="/")
 client.remove_command('help')
 @client.event
@@ -28,7 +31,9 @@ async def help(ctx):
     sends a help message.
     @todo: read help message from a text file. this aint very clear at the moment.
     """
-    await ctx.send("addEvent: this adds a event and announces it once at said datetime. \naddEvent: arguments: date(month-day), time(hh:mm), minutes before announcement(default = 30), name\nexample:/addEvent 10-20 8:42 30 world boss\n\naddRepeatingEvent: this adds a event and repeats it on said day. type none instead of weekday to repeat it every day. addRepeatingEvent: arguments:time, minutes before announcement, weekday(example:friday), name of the event\nexample: /addRepeatingEvent 12:00 30 friday set level 100 tournament\n\naddchannel: this adds the channel where this command has been typed to channels. after this events can be added and announced.\naddchannel: argument: the role to ping.(example:@somerole)\n example: /addchannel @somerole")
+    await ctx.send(getHelp())
+
+
 @client.command()
 async def Time(ctx):
     """
