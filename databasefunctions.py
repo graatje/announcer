@@ -14,7 +14,7 @@ class DatabaseFunctions:
         cur.execute(query)
         self.conn.commit()
         result = cur.fetchall()
-        
+        return result
     def getEvents(self):
         """
         returns events as a list. Also changes the time as a string to a datetime object.
@@ -67,13 +67,13 @@ class DatabaseFunctions:
         cur = self.conn.cursor()
         cur.execute("INSERT INTO repeating_events(name, channel, time, minsbeforeAnnouncement, weekday) VALUES(?,?,?,?,?)", (name,channel,time,minsbeforeAnnouncement, weekday))
         self.conn.commit()
-    def addChannel(self, channelID, pingrole = "@everyone"):
+    def addChannel(self, channelID, guildID, pingrole = "@everyone"):
         """
         adds channel to servers table. default pingrole is @everyone
         parameters int channelid, string pingrole.
         """
         cur = self.conn.cursor()
-        cur.execute("INSERT INTO servers(id, pingrole) VALUES(?, ?)", (channelID, pingrole))
+        cur.execute("INSERT INTO servers(id, pingrole, guild) VALUES(?, ?, ?)", (channelID, pingrole, guildID))
         self.conn.commit()
     def addEvent(self, name, channel, dateEvent, minsbeforeAnnouncement=30):
         """
@@ -87,10 +87,14 @@ class DatabaseFunctions:
     def clearDueEvents(self):
         """
         clears due events from the database.
-        (review if this actually works since it compares strings)
+
         """
         cur =self.conn.cursor()
-        cur.execute("DELETE FROM events WHERE ? >= dateEvent", (datetime.datetime.now(),))
+        cur.execute("SELECT id, dateEvent FROM events")
+        events = cur.fetchall()
+        for i in events:
+            if datetime.datetime.now(datetime.timezone.utc) >= datetime.datetime.strptime(i[1], '%Y-%m-%d %H:%M:%S%z'):
+                cur.execute("DELETE FROM events WHERE id=?", (int(i[0]),))
         self.conn.commit()
     def setAnnounced(self, name, channel, dateEvent, minsbeforeAnnounced, isAnnounced):
         """
@@ -164,13 +168,14 @@ class DatabaseFunctions:
             return str("the following event is deleted\n id: " + str(i[0])+ ", name event: " + str(i[1]) + ", date event: " + str(i[2].replace(":00+00:00", "")) + ", amount of minutes before announcement: " + str(i[3]) + "\nit could take a few minutes before this has effect.")
         else:
             return "please contact kevin123456#2069, you should not see this."
+    
 def createDB():
     """
     this creates the database.
     """
     functions = DatabaseFunctions("events.db")
     functions.executeQuery("CREATE TABLE events(id integer primary key, name text not null, channel integer not null, dateEvent datetime, minsbeforeAnnouncement integer not null, isAnnounced integer not null)")
-    functions.executeQuery("CREATE TABLE servers(id integer primary key, pingrole text not null)")
+    functions.executeQuery("CREATE TABLE servers(id integer primary key, pingrole text not null, guild integer)")
     functions.executeQuery("CREATE TABLE repeating_events(id integer primary key, name text not null, channel integer not null, time text not null, minsbeforeAnnouncement integer not null, weekday integer)")
 
 #create a database when importing if it doesn't exist yet.
@@ -179,7 +184,7 @@ try:
 except FileNotFoundError:
     createDB()
 
-#if __name__ == "__main__":
-#    d = DatabaseFunctions('events.db')
-#    print(d.executeQuery("DELETE FROM servers WHERE id=69420", "45100110866358486100089760976273759394536782658028105952776286101841047216437103925179861099255210592104878"))
+if __name__ == "__main__":
+    d = DatabaseFunctions('events.db')
+    print(d.executeQuery("SELECT count(guild) FROM servers")[0][0])
 

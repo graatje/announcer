@@ -9,6 +9,7 @@ import time
 import os
 import databasefunctions
 # I don't want everyone to know the token so it will be read from a text file that wont be pushed to the git repo.
+
 def readToken():
     """
     reads the content of token.txt and returns that content.
@@ -19,21 +20,43 @@ def readToken():
 def getHelp():
     file = open("help.txt")
     return file.read()
+
 client = commands.Bot(command_prefix="/")
 client.remove_command('help')
+#help(client)
 @client.event
 async def on_ready():
     print("commandtaker ready")
 
-@client.command()
-async def help(ctx):
-    """
-    sends a help message.
-    @todo: read help message from a text file. this aint very clear at the moment.
-    """
-    await ctx.send(getHelp())
+##@client.command()
+##async def help(ctx):
+##    """
+##    sends a help message.
+##    """
+##    await ctx.send(getHelp())
 
-
+def allowedToAdd(ctx):
+    query = "SELECT count(guild) FROM servers WHERE guild = "
+    query += str(ctx.guild.id)
+    d = databasefunctions.DatabaseFunctions('events.db')
+    result = d.executeQuery(query)[0][0]
+    if result ==1:
+        query= "SELECT count(guild) FROM servers WHERE guild = " + str(ctx.guild.id) + " AND id = " + str(ctx.channel.id)
+        result = d.executeQuery(query)[0][0]
+        if result == 0:
+            query = "SELECT id FROM servers WHERE guild = "
+            query += str(ctx.guild.id)
+            result = int(d.executeQuery(query)[0][0])
+            
+            return "the event will be announced on "+ str(client.get_channel(result)) + ". (do /addServer to register this channel too.)", True
+        else:
+            return "event added and will be announced on this channel.", True
+    elif result== 0:
+        return "register a channel to announce things on this server.", False
+    elif result >= 2:
+        return "you can only register events on a registered channel (do /addServer)", False
+    else:
+        return "what the fuck did you do", False
 @client.command()
 async def Time(ctx):
     """
@@ -46,40 +69,57 @@ async def addEventFromNow(ctx, time, announceminsbefore, *thename):
     adds event from now +the given time.
     parameters time, minutes before announcement, the name.
     """
-    name=""
-    for i in thename:
-        name += str(i) + " "
-    toMinutes = int(time.split(":")[0])*60 + int(time.split(":")[1])
-    print(toMinutes)
-    timeEvent = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=toMinutes)
-    timeEvent=datetime.datetime(year=timeEvent.year, month=timeEvent.month, day=timeEvent.day, hour=timeEvent.hour, minute=timeEvent.minute, second=timeEvent.second, tzinfo=datetime.timezone.utc)
-    databasefunctions.DatabaseFunctions("events.db").addEvent(name, ctx.channel.id, timeEvent, int(announceminsbefore))
-    await ctx.send("event added and will be announced on " + str(timeEvent - datetime.timedelta(minutes=int(announceminsbefore))))
+    allowed = allowedToAdd(ctx)
+    if allowed[1]:
+        #since every space in the name is looked at like a new argument the name is stored as a list and will be assembled and made as a string.
+        name=""
+        for i in thename:
+            name += str(i) + " "
+        #converting hh:mm to minutes.
+        toMinutes = int(time.split(":")[0])*60 + int(time.split(":")[1])
+        #making the datetime of the event.
+        timeEvent = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=toMinutes)
+        timeEvent=datetime.datetime(year=timeEvent.year, month=timeEvent.month, day=timeEvent.day, hour=timeEvent.hour, minute=timeEvent.minute, second=timeEvent.second, tzinfo=datetime.timezone.utc)
+
+        try:#try writing to the database..
+            databasefunctions.DatabaseFunctions("events.db").addEvent(name, ctx.channel.id, timeEvent, int(announceminsbefore))
+            await ctx.send("event added and will be announced on " + str(timeEvent - datetime.timedelta(minutes=int(announceminsbefore))))
+        except:
+            print("time:" + str(time) + "minsbeforeevent:" + str(announceminsbefore) + " name: " + str(thename))
+            await ctx.send("Failed. Please check /help to view what arguments must be used for this command.")
+    else:
+        await ctx.send(allowed[0])
 @client.command()
 async def addEvent(ctx, date, time, announceminsbefore=30, *thename):
     """
     adds event.
     parameters date, time, minutes before announcement, the name.
     """
-    name=""
-    for i in thename:
-        name += str(i) + " "
-    #name, channel, dateEvent, minsbeforeAnnouncement=30):
-    #%Y-%m-%d %H:%M:%S
-    
-    temptime=datetime.datetime.strptime(str(date + " " + time) , '%m-%d %H:%M')
-    
-    now=datetime.datetime.now(tz=datetime.timezone.utc)
+    #since every space in the name is looked at like a new argument the name is stored as a list and will be assembled and made as a string.
+    allowed = allowedToAdd(ctx)
+    if allowed[1]:
+        
+        name=""
+        for i in thename:
+            name += str(i) + " "
 
-    realtime = datetime.datetime(year=now.year, month=temptime.month, day=temptime.day, hour=temptime.hour, minute=temptime.minute, second=00, tzinfo=datetime.timezone.utc)
+        #converting string to datetime.datetime object.
+        temptime=datetime.datetime.strptime(str(date + " " + time) , '%m-%d %H:%M')
+        now=datetime.datetime.now(tz=datetime.timezone.utc)
 
-    databasefunctions.DatabaseFunctions("events.db").addEvent(name, ctx.channel.id, realtime, announceminsbefore)
-  
-    print(announceminsbefore)
-    await ctx.send("event added and will be announced on " + str(realtime -datetime.timedelta(minutes=announceminsbefore)))
-    #except:
-     #   await ctx.send("make sure the datetime is in the form 'month-day hour:minute'")
+        #converting to the actual time containing the year as well.
+        realtime = datetime.datetime(year=now.year, month=temptime.month, day=temptime.day, hour=temptime.hour, minute=temptime.minute, second=00, tzinfo=datetime.timezone.utc)
 
+        try:
+            databasefunctions.DatabaseFunctions("events.db").addEvent(name, ctx.channel.id, realtime, announceminsbefore)
+            await ctx.send(allowed[0])
+            await ctx.send("will be announced on " + str(realtime -datetime.timedelta(minutes=announceminsbefore)))
+            
+        except:
+            print("date: " + str(date) + " time:" + str(time) + "minsbeforeevent:" + str(announceminsbefore) + " name: " + str(thename))
+            await ctx.send("Failed. Please check /help to view what arguments must be used for this command.")
+    else:
+        await ctx.send(allowed[0])
 @client.command()
 #self, name, channel, time, minsbeforeAnnouncement, weekday
 async def addRepeatingEvent(ctx, thetime, minsbeforeAnnouncement, weekday=None, *thename):
@@ -88,6 +128,7 @@ async def addRepeatingEvent(ctx, thetime, minsbeforeAnnouncement, weekday=None, 
     parameters:time, minutes before announcement, weekday as string, the name.
     """
     name = ""
+    #converting none as string to None.
     if weekday == "none":
         weekday = None
     for i in thename:
@@ -106,22 +147,21 @@ async def addRepeatingEvent(ctx, thetime, minsbeforeAnnouncement, weekday=None, 
             passed = False
         if passed:
             databasefunctions.DatabaseFunctions("events.db").addRepeatingEvent(name, ctx.channel.id, thetime, minsbeforeAnnouncement, daystuff[weekday])
-
             something=datetime.datetime(year=2000, month=5, day=5, hour=int(timelist[0]), minute=int(timelist[1]))
             somet = something - datetime.timedelta(minutes=int(minsbeforeAnnouncement))
             await ctx.send("repeating event added and will be announced on " + str(somet.hour) + ":" + str(somet.minute) +" every " + str(weekday))
+        else:
+            await ctx.send("Invalid day. possible days: monday, tuesday, wednesday, thursday, friday, saturday, sunday, none (note this must be the text none)")
 @client.command()
 async def addChannel(ctx, role):
     """
     adds a channel.
     parameter: role.
     """
-    try:
-        role = role.replace("\n", "")
-        databasefunctions.DatabaseFunctions("events.db").addChannel(ctx.channel.id, role)
-        await ctx.send(str(ctx.channel) + "added to channels.")
-    except:
-        await ctx.send("failed to add channel. possible cause: channel is already added.")
+    role = role.replace("\n", "")
+    databasefunctions.DatabaseFunctions("events.db").addChannel(ctx.channel.id, ctx.guild.id, role)
+    await ctx.send(str(ctx.channel) + " added to channels.")
+    
 @client.command()
 async def showEvents(ctx):
     """

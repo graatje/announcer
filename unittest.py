@@ -23,4 +23,4 @@ def dateGenerator():
     minutes = random.randint(0, 59)
     realtime = datetime.datetime(year=year, month=month, day=day, hour=hour, minute=minutes, second=00, tzinfo=datetime.timezone.utc)
     return realtime
-help(dateGenerator)
+help(random)

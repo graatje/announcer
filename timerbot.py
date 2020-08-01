@@ -14,8 +14,10 @@ def readToken():
     used to read the token since I don't want anyone to read the token on the github.
     """
     tokenfile = open('token.txt')
-    token=tokenfile.read()
+    token = tokenfile.read()
     return token
+
+
 class AnnouncementObject:
     def __init__(self, name="", dt=datetime.datetime.now(tz=datetime.timezone.utc), announced=False, timedelta = 30, channel=0, pingrole="@everyone"):
         """
@@ -35,8 +37,9 @@ class AnnouncementObject:
         self.announcementtime=self.dt + datetime.timedelta(minutes=-int(timedelta))
         self.pingrole =pingrole
         self.timedelta=timedelta
-   
-        
+    def __str__(self):
+        return "name: " + str(self.name) + ", time event: " + str(self.dt) + ", channel: " + str(self.channel) + ", announcementtime: " + str(self.announcementtime) + ", pingrole: " + str(self.pingrole) + ", timedelta: "+ str(self.timedelta)
+    
 class Announcer:
     """
     this class announces things at a certain time in discord.
@@ -60,10 +63,7 @@ class Announcer:
         #self.taker.runBot()
     async def checkForEvents(self):
         await self.client.wait_until_ready()
-
-
         while True:
-
             """
             this gets the time of the soonest event, if the soonest event is more than 15 minutes away it checks if it must announce events every 10 minutes. 
             else it checks every minute. this is due to saving RAM and energy.
@@ -135,9 +135,7 @@ class Announcer:
 
         events = self.db.getEvents()
         for i in events:
-            #name="", dt=datetime.datetime.now(), announced=False, timedelta = 30, channel=0, pingrole="@everyone"
-            #events.name, events.channel, events.dateEvent, servers.pingrole , events.minsbeforeAnnouncement, events.isAnnounced
-
+            print(i)
             self.events.append(AnnouncementObject(i[0], i[2], i[5], i[4], i[1], i[3].replace("\n", "")))
 
     def addAnnouncement(self, announcementObject):
