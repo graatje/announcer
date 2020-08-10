@@ -2,15 +2,6 @@ addEvent: this adds a event and announces it once at said datetime.
 addEvent: arguments: date(month-day), time(hh:mm), minutes before announcement(default = 30), name
 example:/addEvent 10-20 8:42 30 world boss
 
-addRepeatingEvent: this adds a event and repeats it on said day. type none instead of weekday to repeat it every day. addRepeatingEvent: arguments:time, minutes before announcement, weekday(example:friday), name of the event
-example: /addRepeatingEvent 12:00 30 friday set level 100 tournament
-
-addChannel: this adds the channel where this command has been typed to channels. after this events can be added and announced.
-addChannel: argument: the role to ping.(example:@somerole)
-example: /addchannel @somerole
-
-Time: this gives the current gametime.
-
 deleteEvent: this deletes an event. see /showEvents to show the event id's.
 arguments: eventid.
 example: /deleteEvent 4
@@ -20,3 +11,33 @@ showEvents: this shows the events that must still happen.
 addEventFromNow: this adds an event the hours given from now.
 arguments: time(hh:mm), announceminsbefore, the name of the event.
 example: /addEventFromNow 30:20 15 world boss
+
+showChannels: shows what channels are registered
+arguments: None
+example: /showChannels
+
+addChannel: this adds the channel where this command has been typed to channels. after this events can be added and announced. If @ is not included in the pingrole it will be added to the start of the pingrole.
+addChannel: argument: the role to ping.(example:@somerole)
+example: /addchannel @somerole
+
+removeChannel: removes a the channel where the message is sent on.
+arguments: None
+example: /removeChannel
+
+addRepeatingEvent: this adds a event and repeats it on said day. type none instead of weekday to repeat it every day. 
+addRepeatingEvent: arguments:time, minutes before announcement, weekday(example:friday), name of the event
+example: /addRepeatingEvent 12:00 30 friday set level 100 tournament
+
+deleteRepeatingEvent: removes a repeating event. See /showRepeatingEvents for the id's of channels.
+arguments: id
+example: /deleteRepeatingEvent 4
+
+showRepeatingEvents: repeating events will be sent to your pm's.
+arguments: None
+example: /showRepeatingEvents
+
+Time: this gives the current gametime.
+
+migrate: this migrates all events, repeating events and server if its not added yet to a new channel.
+example: step 1: /migrate (from this channel the announcements will be set to a new one, type /migrate again in the same channel to abort.)
+step 2: type /migrate in the channel you want the announcements from the old channel in now. 

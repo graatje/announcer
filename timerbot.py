@@ -135,15 +135,9 @@ class Announcer:
 
         events = self.db.getEvents()
         for i in events:
-            print(i)
+            
             self.events.append(AnnouncementObject(i[0], i[2], i[5], i[4], i[1], i[3].replace("\n", "")))
 
-    def addAnnouncement(self, announcementObject):
-        """
-        adds announcement object to the list of events. doesnt add it to the database so that could be a problem.
-        (deprecated?)
-        """
-        self.events.append(announcementObject)
     def startBot(self):
         """
         reads token and runs bot, also starts task checkForEvents.

@@ -49,7 +49,7 @@ class DatabaseFunctions:
         gives a list of info from repeating events.
         """
         cur = self.conn.cursor()
-        cur.execute("SELECT repeating_events.name, repeating_events.channel, repeating_events.time, servers.pingrole , repeating_events.minsbeforeAnnouncement, repeating_events.weekday FROM repeating_events, servers WHERE repeating_events.channel = servers.id")
+        cur.execute("SELECT repeating_events.name, repeating_events.channel, repeating_events.time, servers.pingrole , repeating_events.minsbeforeAnnouncement, repeating_events.weekday , repeating_events.id FROM repeating_events, servers WHERE repeating_events.channel = servers.id")
         temp = list(cur.fetchall())
         rows=[]
         #converting tuple to list
@@ -67,6 +67,20 @@ class DatabaseFunctions:
         cur = self.conn.cursor()
         cur.execute("INSERT INTO repeating_events(name, channel, time, minsbeforeAnnouncement, weekday) VALUES(?,?,?,?,?)", (name,channel,time,minsbeforeAnnouncement, weekday))
         self.conn.commit()
+    def deleteRepeatingEvent(self, id, ctx):
+        """
+        delete repeating event by id.
+        parameter id, ctx
+        """
+        cur = self.conn.cursor()
+        cur.execute("SELECT * FROM repeating_events, servers WHERE repeating_events.id=? AND servers.id = repeating_events.channel and servers.guild = ?", (id, ctx.guild.id))
+        result = cur.fetchall()
+        if len(result) == 0:
+            return "no event found. do /showRepeatingEvents to get the id's of repeating events."
+        else:
+            cur.execute("DELETE FROM repeating_events WHERE id=?", (id,))
+            self.conn.commit()
+            return "event deleted."
     def addChannel(self, channelID, guildID, pingrole = "@everyone"):
         """
         adds channel to servers table. default pingrole is @everyone
@@ -75,6 +89,19 @@ class DatabaseFunctions:
         cur = self.conn.cursor()
         cur.execute("INSERT INTO servers(id, pingrole, guild) VALUES(?, ?, ?)", (channelID, pingrole, guildID))
         self.conn.commit()
+    def removeChannel(self, ctx):
+        """
+        removes a channel based on channel id.
+        parameter ctx
+        """
+        cur = self.conn.cursor()
+        cur.execute("DELETE FROM servers WHERE id=?", (ctx.channel.id,))
+        if cur.rowcount ==0:
+            return "Channel wasn't registered at all."
+        else:
+            self.conn.commit()
+            return "Channel removed."
+
     def addEvent(self, name, channel, dateEvent, minsbeforeAnnouncement=30):
         """
         looks if an event is in the database and adds it if its not.
@@ -114,19 +141,21 @@ class DatabaseFunctions:
         if len(cur.fetchall()) != 0:
             return True
         return False
-    def showEvents(self, channelID):
+    def showEvents(self, ctx, client):
         """
         shows the events of a channel.
         parameter channelid.
         return string of events in text form.
         """
+        channelID = ctx.channel.id
+        guild = ctx.guild.id
         allevents = "events happening:\n"
         cur =self.conn.cursor()
-        cur.execute("SELECT id, name, dateEvent, minsbeforeAnnouncement FROM events WHERE channel = ?", (channelID,))
+        cur.execute("SELECT events.id, events.name, events.dateEvent, events.minsbeforeAnnouncement, events.channel FROM events, servers WHERE servers.guild = ? and servers.id = events.channel", (guild,))
         rows = cur.fetchall()
       
         for i in rows:
-            allevents += str("id: " + str(i[0])+ ", name event: " + str(i[1]) + ", date event: " + str(i[2].replace(":00+00:00", "")) + ", amount of minutes before announcement: " + str(i[3]) + "\n")
+            allevents += str("id: " + str(i[0])+ ", name event: " + str(i[1]) + ", date event: " + str(i[2].replace(":00+00:00", "")) + ", amount of minutes before announcement: " + str(i[3]) + ", will be announced on channel:" + str(client.get_channel(i[4])) + "\n")
 
         allevents += "please note that tournaments are added daily around midnight."
         return allevents
@@ -149,26 +178,72 @@ class DatabaseFunctions:
         	return allevents
         else:
         	return "you have no permission to do that."
-    def deleteEvent(self, eventid, channelID):
+    def deleteEvent(self, eventid, ctx):
         """
         this deletes an event.
         parameters int eventid, int channelID
         return string.
         """
-        cur =self.conn.cursor()
-        cur.execute("SELECT id, name, dateEvent, minsbeforeAnnouncement FROM events WHERE channel = ? and id = ?", (channelID, eventid))
-        rows=cur.fetchall()
-        if len(rows) == 0:
-            return "no event found, nothing deleted."
-        elif len(rows)==1:
+        
+        if ctx.message.author.id == 300644437334425601:
             cur = self.conn.cursor()
-            cur.execute("DELETE FROM events WHERE channel = ? and id = ?", (channelID, eventid))
+            cur.execute("DELETE FROM events WHERE id = ?", (eventid,))
             self.conn.commit()
-            i = rows[0]
-            return str("the following event is deleted\n id: " + str(i[0])+ ", name event: " + str(i[1]) + ", date event: " + str(i[2].replace(":00+00:00", "")) + ", amount of minutes before announcement: " + str(i[3]) + "\nit could take a few minutes before this has effect.")
+            return "deleted."
         else:
-            return "please contact kevin123456#2069, you should not see this."
-    
+            channelID =ctx.channel.id
+            cur =self.conn.cursor()
+            cur.execute("SELECT id, name, dateEvent, minsbeforeAnnouncement FROM events WHERE channel = ? and id = ?", (channelID, eventid))
+            rows=cur.fetchall()
+            if len(rows) == 0:
+                return "no event found, nothing deleted."
+            elif len(rows)==1:
+                cur = self.conn.cursor()
+                cur.execute("DELETE FROM events WHERE channel = ? and id = ?", (channelID, eventid))
+                self.conn.commit()
+                i = rows[0]
+                return str("the following event is deleted\n id: " + str(i[0])+ ", name event: " + str(i[1]) + ", date event: " + str(i[2].replace(":00+00:00", "")) + ", amount of minutes before announcement: " + str(i[3]) + "\nit could take a few minutes before this has effect.")
+            else:
+                return "please contact kevin123456#2069, you should not see this."
+    def showChannels(self, ctx, client):
+        """
+        shows channels as a string.
+        parameters: ctx, client
+        """
+        cur = self.conn.cursor()
+        cur.execute("SELECT id FROM servers WHERE guild = ?",(ctx.guild.id,))
+        result = cur.fetchall()
+        stringRepresentation = "the following channels are registered:"
+        for i in result:
+            stringRepresentation+= str(client.get_channel(i[0])) + ", "
+        return stringRepresentation
+    def migrate(self, ctx):
+        resultmessage = ""
+        cur = self.conn.cursor()
+        cur.execute("SELECT channel1 FROM migrations WHERE guild=?", (ctx.guild.id,))
+
+        result = cur.fetchall()
+        if len(result) == 0:
+            cur.execute("INSERT INTO migrations(channel1, guild) VALUES(?, ?)", (ctx.channel.id, ctx.guild.id))
+            self.conn.commit()
+            return "type /migrate in another channel to move everything from the current channel to another channel. Type /migrate in this channel to abort."
+        elif len(result) == 1:
+            if int(result[0][0]) == ctx.channel.id:
+                return "migration aborted."
+            cur.execute("UPDATE events SET channel=? WHERE channel=?", (ctx.channel.id, result[0][0]))
+            resultmessage+="events have been set to channel " + str(ctx.channel) + "\n"
+            cur.execute("UPDATE repeating_events SET channel=? WHERE channel=?", (ctx.channel.id, result[0][0]))
+            resultmessage += "repeating events have been set to the channel " + str(ctx.channel) + "\n"
+            try:
+                cur.execute("UPDATE servers SET id=? WHERE id=?", (ctx.channel.id, result[0][0]))
+                resultmessage += "current channel has been set to the new one."
+            except:
+                resultmessage += "server already added."
+            cur.execute("DELETE FROM migrations WHERE channel1=?", (result[0][0],))
+            resultmessage+= "migration complete."
+            self.conn.commit()
+        return resultmessage
+            #"UPDATE events SET isAnnounced=1 WHERE name=? and channel=? and dateEvent=? and minsbeforeAnnouncement=? and isAnnounced=?
 def createDB():
     """
     this creates the database.
@@ -177,7 +252,7 @@ def createDB():
     functions.executeQuery("CREATE TABLE events(id integer primary key, name text not null, channel integer not null, dateEvent datetime, minsbeforeAnnouncement integer not null, isAnnounced integer not null)")
     functions.executeQuery("CREATE TABLE servers(id integer primary key, pingrole text not null, guild integer)")
     functions.executeQuery("CREATE TABLE repeating_events(id integer primary key, name text not null, channel integer not null, time text not null, minsbeforeAnnouncement integer not null, weekday integer)")
-
+    functions.executeQuery("CREATE TABLE migrations(channel1 integer primary key, guild integer unique)")
 #create a database when importing if it doesn't exist yet.
 try:
     open('events.db')
